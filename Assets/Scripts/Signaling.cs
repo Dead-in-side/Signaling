@@ -9,9 +9,8 @@ public class Signaling : MonoBehaviour
     private SignalingTrigger _signalingTrigger;
     private float _maxVolume = 1f;
     private float _minVolume = 0f;
-    private float _volumeSteps = 0.003f;
-    private Coroutine _coroutinePlay;
-    private Coroutine _coroutineStop;
+    private float _volumeSteps = 0.03f;
+    private Coroutine _coroutineVolume;
 
     private void Awake()
     {
@@ -23,56 +22,47 @@ public class Signaling : MonoBehaviour
 
     private void OnEnable()
     {
-        _signalingTrigger.ThiefEnter += PlaySound;
-        _signalingTrigger.ThiefExit += StopSound;
+        _signalingTrigger.ThiefEnter += IncreaseVolume;
+        _signalingTrigger.ThiefExit += DecreaseVolume;
     }
 
     private void OnDisable()
     {
-        _signalingTrigger.ThiefEnter -= PlaySound;
-        _signalingTrigger.ThiefExit -= StopSound;
+        _signalingTrigger.ThiefEnter -= IncreaseVolume;
+        _signalingTrigger.ThiefExit -= DecreaseVolume;
     }
 
-    private void PlaySound()
+    private void IncreaseVolume()
     {
-        _coroutinePlay = StartCoroutine(ClipPlayCoroutine());
-
-        if (_coroutineStop != null)
+        if (_coroutineVolume != null)
         {
-            StopCoroutine(_coroutineStop);
+            StopCoroutine(_coroutineVolume);
         }
+
+        _coroutineVolume = StartCoroutine(ChangeVolume(_maxVolume));
     }
 
-    private void StopSound()
+    private void DecreaseVolume()
     {
-        _coroutineStop = StartCoroutine(ClipStopCoroutine());
-
-        if ((_coroutinePlay != null))
+        if ((_coroutineVolume != null))
         {
-            StopCoroutine(_coroutinePlay);
+            StopCoroutine(_coroutineVolume);
         }
+
+        _coroutineVolume = StartCoroutine(ChangeVolume(_minVolume));
     }
 
-    private IEnumerator ClipPlayCoroutine()
+    private IEnumerator ChangeVolume(float volume)
     {
         _audioSource.Play();
 
-        while (_audioSource.volume < _maxVolume)
+        do
         {
-            _audioSource.volume = Mathf.MoveTowards(_audioSource.volume, _maxVolume, _volumeSteps);
+            _audioSource.volume = Mathf.MoveTowards(_audioSource.volume, volume, _volumeSteps * Time.deltaTime);
 
             yield return null;
-        }
-    }
 
-    private IEnumerator ClipStopCoroutine()
-    {
-        while (_audioSource.volume > _minVolume)
-        {
-            _audioSource.volume = Mathf.MoveTowards(_audioSource.volume, _minVolume, _volumeSteps);
-
-            yield return null;
-        }
+        } while (_audioSource.volume != _minVolume);
 
         _audioSource.Stop();
     }
